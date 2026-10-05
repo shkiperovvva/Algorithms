@@ -1,5 +1,7 @@
 #include "stack.h"
-#include "vector.h" 
+#include "vector.h"
+
+#include <utility>
 
 struct Stack
 {
@@ -63,4 +65,29 @@ bool stack_empty(const Stack *stack)
         return true;
 
     return vector_size(stack->vector) == 0;
+}
+
+size_t stack_size(const Stack *stack)
+{
+    if (!stack)
+        return 0;
+
+    return vector_size(stack->vector);
+}
+
+void stack_reverse(Stack *stack)
+{
+    if (!stack)
+        return;
+
+    // перекладываем элементы во второй стек: теперь наверху бывший нижний элемент
+    Stack *reversed = stack_create();
+
+    while (!stack_empty(stack))
+        stack_push(reversed, stack_pop(stack));
+
+    // обмен указателей: stack получает развёрнутые элементы
+    std::swap(stack->vector, reversed->vector);
+
+    stack_delete(reversed);
 }

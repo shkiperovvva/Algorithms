@@ -141,24 +141,7 @@ static Data pop_value(Stack *stack)
 // возврат количества элементов стека
 static size_t get_stack_size(Stack *stack)
 {
-    size_t count = 0;
-    vector<Data> temporary;
-
-    while (!stack_empty(stack))
-    {
-        temporary.push_back(stack_pop(stack));
-        ++count;
-    }
-
-    // восстановление исходного порядока элементов
-    for (auto iterator = temporary.rbegin();
-         iterator != temporary.rend();
-         ++iterator)
-    {
-        stack_push(stack, *iterator);
-    }
-
-    return count;
+    return stack_size(stack);
 }
 
 // выполнение арифметической или логической операции
@@ -230,67 +213,48 @@ static void binary_operation(
     }
 }
 
-// разворот порядока элементов стека
-static void reverse_stack(Stack *stack)
-{
-    const size_t count = get_stack_size(stack);
-    vector<Data> values;
-
-    for (size_t i = 0; i < count; ++i)
-        values.push_back(pop_value(stack));
-
-    for (Data value : values)
-        stack_push(stack, value);
-}
-
-// циклический сдвиг эдементов стека влево
+// циклический сдвиг элементов стека влево ('{')
+// нижний элемент перемещается наверх
 static void rotate_left(Stack *stack)
 {
-    const size_t count = get_stack_size(stack);
-
-    if (count < 2)
+    if (get_stack_size(stack) < 2)
         return;
 
-    vector<Data> values(count);
+    Stack *temporary = stack_create();
 
-    for (size_t i = 0; i < count; ++i)
-        values[i] = pop_value(stack);
+    while (!stack_empty(stack))
+        stack_push(temporary, stack_pop(stack));
 
-    reverse(values.begin(), values.end());
+    // наверху temporary — нижний элемент исходного стека
+    const Data bottom = stack_pop(temporary);
 
-    rotate(
-        values.begin(),
-        values.begin() + 1,
-        values.end()
-    );
+    while (!stack_empty(temporary))
+        stack_push(stack, stack_pop(temporary));
 
-    for (Data value : values)
-        stack_push(stack, value);
+    stack_push(stack, bottom);
+
+    stack_delete(temporary);
 }
 
-// циклический сдвиг элементов стека вправо
+// циклический сдвиг элементов стека вправо ('}'):
+// верхний элемент перемещается вниз
 static void rotate_right(Stack *stack)
 {
-    const size_t count = get_stack_size(stack);
-
-    if (count < 2)
+    if (get_stack_size(stack) < 2)
         return;
 
-    vector<Data> values(count);
+    const Data top = pop_value(stack); // верхний элемент уйдёт вниз
 
-    for (size_t i = 0; i < count; ++i)
-        values[i] = pop_value(stack);
+    Stack *temporary = stack_create();
 
-    reverse(values.begin(), values.end());
+    while (!stack_empty(stack))
+        stack_push(temporary, stack_pop(stack));
 
-    rotate(
-        values.begin(),
-        values.end() - 1,
-        values.end()
-    );
+    stack_push(stack, top);
+    while (!stack_empty(temporary))
+        stack_push(stack, stack_pop(temporary));
 
-    for (Data value : values)
-        stack_push(stack, value);
+    stack_delete(temporary);
 }
 
 // выполнение скрипта Fish
@@ -468,8 +432,11 @@ static void execute(
 
                 // дублирование верхнего элемента стека
                 case ':':
-                    stack_push(stack, stack_get(stack));
+                {
+                    const Data top = stack_get(stack);
+                    stack_push(stack, top);
                     break;
+                }
 
                 // удаление верхнего элемента стека
                 case '~':
@@ -495,9 +462,9 @@ static void execute(
                     const Data second = pop_value(stack);
                     const Data third = pop_value(stack);
 
-                    stack_push(stack, second);
                     stack_push(stack, first);
                     stack_push(stack, third);
+                    stack_push(stack, second);
 
                     break;
                 }
@@ -514,7 +481,7 @@ static void execute(
 
                 // разворот всего стека
                 case 'r':
-                    reverse_stack(stack);
+                    stack_reverse(stack);
                     break;
 
                 // помещение размера стека в стек

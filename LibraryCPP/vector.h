@@ -7,7 +7,7 @@
 
 // Stores integer values inside
 // Change it to desired type
-typedef size_t Data;
+typedef long long Data;
 
 struct Vector;
 
